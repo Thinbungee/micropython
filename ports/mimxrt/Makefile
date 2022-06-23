@@ -165,6 +165,7 @@ SRC_C += \
 	dma_manager.c \
 	drivers/bus/softspi.c \
 	drivers/dht/dht.c \
+	flash.c \
 	eth.c \
 	fatfs_port.c \
 	hal/pwm_backport.c \
