@@ -33,8 +33,6 @@
 #include "fsl_lpuart.h"
 #include "fsl_iomuxc.h"
 #include CLOCK_CONFIG_H
-#include "pin.h"
-
 #define DEFAULT_UART_BAUDRATE (115200)
 #define DEFAULT_BUFFER_SIZE (256)
 #define MIN_BUFFER_SIZE  (32)
@@ -372,12 +370,27 @@ STATIC mp_uint_t machine_uart_write(mp_obj_t self_in, const void *buf_in, mp_uin
     lpuart_transfer_t xfer;
     uint64_t t;
     size_t remaining = size;
-    size_t offset = 0;
+    size_t first_part_size = 0;
+    uint32_t block_time;
+    uint32_t timeout_budget = self->timeout;
     uint8_t fifo_size = FSL_FEATURE_LPUART_FIFO_SIZEn(0);
 
-    // First check if a previous transfer is still ongoing,
-    // then wait at least the number of remaining character times.
-    t = ticks_us64() + (uint64_t)(self->handle.txDataSize + fifo_size) * (13000000 / self->config.baudRate_Bps + 1000);
+    // Check if a tansmission is still going on and will block longer than timeout
+    // In that case, return immediately
+    // For block time estimations, a 11 bit frame size is assumed instead of getting
+    // actual frame size, for worst case timeouts a 13 bit frame.
+    if (self->tx_status != kStatus_LPUART_TxIdle) {
+        block_time = (self->handle.txDataSize + fifo_size) * 11000 / self->config.baudRate_Bps;
+        if (timeout_budget < block_time) {
+            *errcode = MP_EAGAIN;
+            return MP_STREAM_ERROR;
+        }
+        timeout_budget -= block_time;
+    }
+
+    // Now wait for the previous transfer to finish, but not longer than the expected
+    // transfer time.
+    t = ticks_us64() + (uint64_t)(self->handle.txDataSize + fifo_size) * 13000000 / self->config.baudRate_Bps + 1000;
     while (self->tx_status != kStatus_LPUART_TxIdle) {
         if (ticks_us64() > t) { // timed out, hard error
             *errcode = MP_ETIMEDOUT;
@@ -388,41 +401,43 @@ STATIC mp_uint_t machine_uart_write(mp_obj_t self_in, const void *buf_in, mp_uin
 
     // Check if the first part has to be sent semi-blocking.
     if (size > self->txbuf_len) {
-        // Send the first block.
-        xfer.data = (uint8_t *)buf_in;
-        offset = xfer.dataSize = size - self->txbuf_len;
-        self->tx_status = kStatus_LPUART_TxBusy;
-        LPUART_TransferSendNonBlocking(self->lpuart, &self->handle, &xfer);
+        // check if it blocks shorter than the remaining timeout budget
+        block_time = (size - self->txbuf_len) * 11000 / self->config.baudRate_Bps;
+        if (timeout_budget > block_time) {
+            // Send the first block.
+            xfer.data = (uint8_t *)buf_in;
+            first_part_size = xfer.dataSize = size - self->txbuf_len;
+            self->tx_status = kStatus_LPUART_TxBusy;
+            LPUART_TransferSendNonBlocking(self->lpuart, &self->handle, &xfer);
 
-        // Wait at least the number of character times for this chunk.
-        t = ticks_us64() + (uint64_t)xfer.dataSize * (13000000 / self->config.baudRate_Bps + 1000);
-        while (self->tx_status != kStatus_LPUART_TxIdle) {
-            // Wait for the first/next character to be sent.
-            if (ticks_us64() > t) { // timed out
-                if (self->handle.txDataSize >= size) {
-                    *errcode = MP_ETIMEDOUT;
-                    return MP_STREAM_ERROR;
-                } else {
-                    return size - self->handle.txDataSize;
+            // Wait at least the number of character times for this chunk.
+            t = ticks_us64() + (uint64_t)(self->handle.txDataSize + fifo_size) *
+                13000000 / self->config.baudRate_Bps + 1000;
+            while (self->tx_status != kStatus_LPUART_TxIdle) {
+                // Wait for data to be sent.
+                if (ticks_us64() > t) { // timed out
+                    if (self->handle.txDataSize >= first_part_size) {
+                        *errcode = MP_ETIMEDOUT;
+                        return MP_STREAM_ERROR;
+                    } else {
+                        return first_part_size - self->handle.txDataSize;
+                    }
                 }
+                MICROPY_EVENT_POLL_HOOK
             }
-            MICROPY_EVENT_POLL_HOOK
         }
+        // In any case, just sent a buffer sized chunk in the next step
         remaining = self->txbuf_len;
-    } else {
-        // The data fits into the tx buffer.
-        offset = 0;
-        remaining = size;
     }
 
     // Send the remaining data without waiting for completion.
-    memcpy(self->txbuf, (uint8_t *)buf_in + offset, remaining);
+    memcpy(self->txbuf, (uint8_t *)buf_in + first_part_size, remaining);
     xfer.data = self->txbuf;
     xfer.dataSize = remaining;
     self->tx_status = kStatus_LPUART_TxBusy;
     LPUART_TransferSendNonBlocking(self->lpuart, &self->handle, &xfer);
 
-    return size;
+    return first_part_size + remaining;
 }
 
 STATIC mp_uint_t machine_uart_ioctl(mp_obj_t self_in, mp_uint_t request, mp_uint_t arg, int *errcode) {
