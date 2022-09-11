@@ -503,20 +503,10 @@ STATIC mp_uint_t machine_uart_read(mp_obj_t self_in, void *buf_in, mp_uint_t siz
 STATIC mp_uint_t machine_uart_write(mp_obj_t self_in, const void *buf_in, mp_uint_t size, int *errcode) {
     machine_uart_obj_t *self = MP_OBJ_TO_PTR(self_in);
     uint64_t t = time_us_64() + (uint64_t)self->timeout * 1000;
-    uint64_t timeout_char_us = (uint64_t)self->timeout_char * 1000;
     const uint8_t *src = buf_in;
     size_t i = 0;
 
-    // Put as many bytes as possible into the transmit buffer.
-    while (i < size && ringbuf_free(&(self->write_buffer)) > 0) {
-        ringbuf_put(&(self->write_buffer), *src++);
-        ++i;
-    }
-
-    // Kickstart the UART transmit.
-    uart_fill_tx_fifo(self);
-
-    // Send the next characters while busy waiting.
+    // Send until either the end or timeout.
     while (i < size) {
         // Wait for the first/next character to be sent.
         while (ringbuf_free(&(self->write_buffer)) == 0) {
@@ -532,7 +522,6 @@ STATIC mp_uint_t machine_uart_write(mp_obj_t self_in, const void *buf_in, mp_uin
         }
         ringbuf_put(&(self->write_buffer), *src++);
         ++i;
-        t = time_us_64() + timeout_char_us;
         uart_fill_tx_fifo(self);
     }
 
