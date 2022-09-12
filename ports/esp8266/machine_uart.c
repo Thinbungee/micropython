@@ -74,7 +74,7 @@ STATIC void pyb_uart_init_helper(pyb_uart_obj_t *self, size_t n_args, const mp_o
         { MP_QSTR_tx, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
         { MP_QSTR_rx, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
         { MP_QSTR_rxbuf, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
-        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
+        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1} },
         { MP_QSTR_timeout_char, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -178,7 +178,9 @@ STATIC void pyb_uart_init_helper(pyb_uart_obj_t *self, size_t n_args, const mp_o
     }
 
     // set timeout
-    self->timeout = args[ARG_timeout].u_int;
+    if (args[ARG_timeout].u_int != -1) {
+        self->timeout = args[ARG_timeout].u_int;
+    }
 
     // set timeout_char
     // make sure it is at least as long as a whole character (13 bits to be safe)
@@ -208,7 +210,7 @@ STATIC mp_obj_t pyb_uart_make_new(const mp_obj_type_t *type, size_t n_args, size
     self->bits = 8;
     self->parity = 0;
     self->stop = 1;
-    self->timeout = 0;
+    self->timeout = uart_id == 0 ? 1000 : 0;
     self->timeout_char = 0;
 
     // init the peripheral
@@ -285,18 +287,21 @@ STATIC mp_uint_t pyb_uart_read(mp_obj_t self_in, void *buf_in, mp_uint_t size, i
 STATIC mp_uint_t pyb_uart_write(mp_obj_t self_in, const void *buf_in, mp_uint_t size, int *errcode) {
     pyb_uart_obj_t *self = MP_OBJ_TO_PTR(self_in);
     const byte *buf = buf_in;
+    uint32_t timeout = mp_hal_ticks_ms() + self->timeout;
 
-    /* TODO implement non-blocking
-    // wait to be able to write the first character
-    if (!uart_tx_wait(self, timeout)) {
-        *errcode = EAGAIN;
-        return MP_STREAM_ERROR;
-    }
-    */
-
-    // write the data
+    // write the data with timeout check
     for (size_t i = 0; i < size; ++i) {
-        uart_tx_one_char(self->uart_id, *buf++);
+        while (uart_tx_one_char_nowait(self->uart_id, *buf) == false) {
+            if (mp_hal_ticks_ms() > timeout) {
+                if (i <= 0) {
+                    *errcode = MP_EAGAIN;
+                    return MP_STREAM_ERROR;
+                } else {
+                    return i;
+                }
+            }
+        }
+        buf++;
     }
 
     // return number of bytes written

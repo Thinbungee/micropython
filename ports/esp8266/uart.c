@@ -95,11 +95,11 @@ static void ICACHE_FLASH_ATTR uart_config(uint8 uart_no) {
 }
 
 /******************************************************************************
- * FunctionName : uart1_tx_one_char
+ * FunctionName : uart_tx_one_char
  * Description  : Internal used function
- *                Use uart1 interface to transfer one char
- * Parameters   : uint8 TxChar - character to tx
- * Returns      : OK
+ *                Use uart interface to transfer one char
+ * Parameters   : uint8_t uart, uint8 TxChar - character to tx
+ * Returns      : NONE
 *******************************************************************************/
 void uart_tx_one_char(uint8 uart, uint8 TxChar) {
     while (true) {
@@ -111,6 +111,31 @@ void uart_tx_one_char(uint8 uart, uint8 TxChar) {
     WRITE_PERI_REG(UART_FIFO(uart), TxChar);
 }
 
+/******************************************************************************
+ * FunctionName : uart_tx_one_char_nowait
+ * Description  : Internal used function
+ *                Use uart interface to transfer one char without waiting
+ *                If the FIFO is full, return false
+ * Parameters   : uint8_t uart, uint8 TxChar - character to tx
+ * Returns      : true/false
+*******************************************************************************/
+bool uart_tx_one_char_nowait(uint8 uart, uint8 TxChar) {
+    uint32 fifo_cnt = READ_PERI_REG(UART_STATUS(uart)) & (UART_TXFIFO_CNT << UART_TXFIFO_CNT_S);
+    if ((fifo_cnt >> UART_TXFIFO_CNT_S & UART_TXFIFO_CNT) < 126) {
+        WRITE_PERI_REG(UART_FIFO(uart), TxChar);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/******************************************************************************
+ * FunctionName : uart_tx_done
+ * Description  : Internal used function
+ *                Tell if all characters on UART1 have been sent.
+ * Parameters   : uint8_t uart
+ * Returns      : true/false
+*******************************************************************************/
 int uart_txdone(uint8 uart) {
     uint32 fifo_cnt = READ_PERI_REG(UART_STATUS(uart)) & (UART_TXFIFO_CNT << UART_TXFIFO_CNT_S);
     if ((fifo_cnt >> UART_TXFIFO_CNT_S & UART_TXFIFO_CNT) == 0) {
@@ -120,6 +145,13 @@ int uart_txdone(uint8 uart) {
     }
 }
 
+/******************************************************************************
+ * FunctionName : uart_tx_done
+ * Description  : Internal used function
+ *                Wait until all characters on UART1 have been sent.
+ * Parameters   : uint8_t uart
+ * Returns      : NONE
+*******************************************************************************/
 void uart_flush(uint8 uart) {
     while (true) {
         uint32 fifo_cnt = READ_PERI_REG(UART_STATUS(uart)) & (UART_TXFIFO_CNT << UART_TXFIFO_CNT_S);
