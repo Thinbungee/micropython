@@ -104,6 +104,7 @@ SRC_C += \
 	samd_isr.c \
 	samd_qspiflash.c \
 	samd_soc.c \
+	spiflash.c \
 	tusb_port.c \
 
 SHARED_SRC_C += \
@@ -119,6 +120,7 @@ SHARED_SRC_C += \
 	shared/runtime/sys_stdio_mphal.c \
 	shared/timeutils/timeutils.c \
 	shared/tinyusb/mp_cdc_common.c \
+	extmod/virtpin.c \
 
 ASF4_SRC_C += $(addprefix lib/asf4/$(MCU_SERIES_LOWER)/,\
 	hal/src/hal_atomic.c \

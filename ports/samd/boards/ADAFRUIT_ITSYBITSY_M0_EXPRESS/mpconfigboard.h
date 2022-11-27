@@ -2,3 +2,5 @@
 #define MICROPY_HW_MCU_NAME   "SAMD21G18A"
 
 #define MICROPY_HW_DFLL_USB_SYNC    (1)
+
+#define MICROPY_HW_SPIFLASH (1)
