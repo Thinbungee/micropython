@@ -509,6 +509,78 @@ with the Neopixel driver from the MicroPython driver library::
 machine.bitstream() is set up for a SAMD21 clock frequency of 48MHz and a SAMD51
 clock frequency of 120 MHz. At other clock frequencies, the timing will not fit.
 
+Using an external flash chip for a file system
+----------------------------------------------
+
+Some SAMD boards are equipped with an external flash chip, which can be used
+as for a file storage. At SAM21 boards they are connected to a SPI bus. At
+SAMD51 boards they are connected either to the QSPI interface of a SPI bus.
+Support for raw flash access is built in to the firmware. A small block device
+driver is included as frozen bytecode which creates the interface between the
+raw flash driver and the file system. The sample scripts below can be used
+to mount the flash device as file system.
+
+Example using QSPI::
+
+    import os
+    from samd import QSPIflash
+    from flashbdev import FlashBdev
+    flash = FlashBdev(QSPIflash())
+
+    try:
+        vfs = os.VfsLfs2(flash, progsize=256)
+    except OSError as e:
+        print("Recreate the file system")
+        os.VfsLfs2.mkfs(flash, progsize=256)
+        vfs = os.VfsLfs2(flash, progsize=256)
+
+    os.mount(vfs, "/flash")
+
+
+Example using SPI at a SAM51 device (Sparkfun SAMD51 Things Plus)::
+
+    import os
+    from flashbdev import FlashBdev
+    from machine import SPI, Pin
+    from samd import SPIflash
+
+    spi=SPI(0, sck="FLASH_SCK", mosi="FLASH_MOSI", miso="FLASH_MISO", baudrate=24_000_000)
+    cs = Pin("FLASH_CS", Pin.OUT, value=1)
+    flash=FlashBdev(SPIflash(spi, cs))
+
+    try:
+        vfs = os.VfsLfs2(flash, progsize=256)
+    except OSError as e:
+        print("Recreate the file system")
+        os.VfsLfs2.mkfs(flash, progsize=256)
+        vfs = os.VfsLfs2(flash, progsize=256)
+
+    os.mount(vfs, "/flash")
+
+
+Example using SPI at a SAM21 device (Adafruit ItsyBitsy M0)::
+
+    import os
+    from machine import SPI, Pin
+    from samd import SPIflash
+    from flashbdev import FlashBdev
+
+    cs = Pin("FLASH_CS", Pin.OUT, value=1)
+    spi = SPI(5, sck="FLASH_SCK", mosi="FLASH_MOSI", miso="FLASH_MISO", baudrate=24_000_000)
+    flash = FlashBdev(SPIflash(spi, cs))
+
+    try:
+        vfs = os.VfsLfs1(flash, progsize=256)
+    except OSError as e:
+        print("Recreate the file system")
+        os.VfsLfs1.mkfs(flash, progsize=256)
+        vfs = os.VfsLfs1(flash, progsize=256)
+
+    os.mount(vfs, "/flash")
+
+
+Note that the SPI device number varies between boards.
+
 Transferring files
 ------------------
 
