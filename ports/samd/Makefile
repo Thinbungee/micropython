@@ -102,6 +102,7 @@ SRC_C += \
 	pin_af.c \
 	samd_flash.c \
 	samd_isr.c \
+	samd_qspiflash.c \
 	samd_soc.c \
 	tusb_port.c \
 

@@ -33,6 +33,9 @@
 #include "samd_soc.h"
 
 extern const mp_obj_type_t samd_flash_type;
+#ifdef MICROPY_HW_QSPIFLASH
+extern const mp_obj_type_t samd_qspiflash_type;
+#endif
 
 STATIC mp_obj_t samd_pininfo(mp_obj_t pin_obj) {
     const machine_pin_obj_t *pin_af = pin_find(pin_obj);
@@ -72,6 +75,9 @@ STATIC const mp_rom_map_elem_t samd_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_samd) },
     { MP_ROM_QSTR(MP_QSTR_Flash),    MP_ROM_PTR(&samd_flash_type) },
     { MP_ROM_QSTR(MP_QSTR_pininfo),  MP_ROM_PTR(&samd_pininfo_obj) },
+    #ifdef MICROPY_HW_QSPIFLASH
+    { MP_ROM_QSTR(MP_QSTR_QSPIflash), MP_ROM_PTR(&samd_qspiflash_type) },
+    #endif
 };
 STATIC MP_DEFINE_CONST_DICT(samd_module_globals, samd_module_globals_table);
 
