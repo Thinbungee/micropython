@@ -9,4 +9,7 @@
 // and so there is a fix here using the previous definition.
 #define DBL_TAP_ADDR_ALT    ((volatile uint32_t *)(HSRAM_ADDR + HSRAM_SIZE - 0x10000 - 4))
 
-#define MICROPY_HW_SPIFLASH (1)
+// Enabling both two lines below will set the boot file system to
+// the board's external flash.
+#define MICROPY_HW_SPIFLASH         (1)
+// #define MICROPY_HW_SPIFLASH_ID      (0)

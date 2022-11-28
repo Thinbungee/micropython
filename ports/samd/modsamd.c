@@ -84,6 +84,9 @@ STATIC const mp_rom_map_elem_t samd_module_globals_table[] = {
     #ifdef MICROPY_HW_SPIFLASH
     { MP_ROM_QSTR(MP_QSTR_SPIflash), MP_ROM_PTR(&spiflash_type) },
     #endif
+    #ifdef MICROPY_HW_SPIFLASH_ID
+    { MP_ROM_QSTR(MP_QSTR_SPI_ID),   MP_ROM_INT(MICROPY_HW_SPIFLASH_ID) },
+    #endif
 };
 STATIC MP_DEFINE_CONST_DICT(samd_module_globals, samd_module_globals_table);
 

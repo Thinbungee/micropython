@@ -3,4 +3,5 @@
 
 #define MICROPY_HW_DFLL_USB_SYNC    (1)
 
-#define MICROPY_HW_SPIFLASH (1)
+#define MICROPY_HW_SPIFLASH         (1)
+#define MICROPY_HW_SPIFLASH_ID      (5)

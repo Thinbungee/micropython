@@ -4,3 +4,4 @@
 #define MICROPY_HW_XOSC32K  (1)
 
 #define MICROPY_HW_SPIFLASH (1)
+#define MICROPY_HW_SPIFLASH_ID (2)
