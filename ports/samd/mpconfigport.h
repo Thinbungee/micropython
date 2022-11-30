@@ -109,6 +109,11 @@
 
 #define MP_STATE_PORT MP_STATE_VM
 
+// Use internal flash for the file system if external flash is not used for it.
+#if !defined(MICROPY_HW_QSPIFLASH) && !(defined(MICROPY_HW_SPIFLASH) && defined(MICROPY_HW_SPIFLASH_ID))
+#define MICROPY_HW_MCUFLASH                 (1)
+#endif
+
 // Miscellaneous settings
 __attribute__((always_inline)) static inline void enable_irq(uint32_t state) {
     __set_PRIMASK(state);

@@ -20,23 +20,25 @@ try:
         progsize = 256
         flashfs = True
         del SPI, Pin, spi
+    elif hasattr(samd, "MCUflash"):
+        bdev = FlashBdev(samd.MCUflash())
+        progsize = 32  # which is the default
+        flashfs = True
 except:
     pass
 
-if not flashfs:
-    bdev = FlashBdev(samd.MCUflash())
-    progsize = 32  # which is the default
 
 # Try to mount the filesystem, and format the flash if it doesn't exist.
-fs_type = uos.VfsLfs2 if hasattr(uos, "VfsLfs2") else uos.VfsLfs1
+if flashfs:
+    fs_type = uos.VfsLfs2 if hasattr(uos, "VfsLfs2") else uos.VfsLfs1
 
-try:
-    vfs = fs_type(bdev, progsize=progsize)
-except:
-    fs_type.mkfs(bdev, progsize=progsize)
-    vfs = fs_type(bdev, progsize=progsize)
-uos.mount(vfs, "/")
-del vfs, fs_type
+    try:
+        vfs = fs_type(bdev, progsize=progsize)
+    except:
+        fs_type.mkfs(bdev, progsize=progsize)
+        vfs = fs_type(bdev, progsize=progsize)
+    uos.mount(vfs, "/")
+    del vfs, fs_type, progsize, bdev, flashfs
 
+del uos, gc, samd, FlashBdev
 gc.collect()
-del uos, gc, samd, progsize, bdev, FlashBdev, flashfs

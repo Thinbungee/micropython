@@ -100,8 +100,8 @@ SRC_C += \
 	mphalport.c \
 	pendsv.c \
 	pin_af.c \
-	samd_flash.c \
 	samd_isr.c \
+	samd_mcuflash.c \
 	samd_qspiflash.c \
 	samd_soc.c \
 	spiflash.c \
