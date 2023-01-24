@@ -42,6 +42,9 @@ extern void EIC_Handler(void);
 const ISR isr_vector[];
 volatile uint32_t systick_ms;
 volatile uint32_t ticks_us64_upper;
+#if defined(MCU_SAMD21)
+volatile uint32_t rng_seed;
+#endif
 
 void Reset_Handler(void) __attribute__((naked));
 void Reset_Handler(void) {
@@ -97,7 +100,17 @@ void SysTick_Handler(void) {
     if (soft_timer_next == next_tick) {
         pendsv_schedule_dispatch(PENDSV_DISPATCH_SOFT_TIMER, soft_timer_handler);
     }
+    #if defined(MCU_SAMD21)
+    rng_seed = (rng_seed * 17) ^ (REG_TC4_COUNT32_COUNT >> 1);
+    #endif
 }
+
+#if defined(MCU_SAMD21)
+uint32_t get_rng_seed(void) {
+    mp_hal_delay_ms(320); // wait for ten cycles of the rng_seed register
+    return rng_seed;
+}
+#endif
 
 void us_timer_IRQ(void) {
     #if defined(MCU_SAMD21)
