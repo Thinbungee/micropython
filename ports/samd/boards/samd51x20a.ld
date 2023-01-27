@@ -2,10 +2,16 @@
     GNU linker script for SAMD51x20
 */
 
+/* MICROPY_HW_CODESIZE is defined in mpconfigmcu.mk or mpconfigboard.mk */
+
+_flashsize = 1024K; /* The physical flash size */
+_bootloader = 16K;  /* Must match the ORIGIN value of FLASH */
+_codesize = MICROPY_HW_CODESIZE;  /* the space dedicated to code */
+
 /* Specify the memory areas */
 MEMORY
 {
-    FLASH (rx)  : ORIGIN = 0x00004000, LENGTH = 1024K - 16K
+    FLASH (rx)  : ORIGIN = 0x00004000, LENGTH = _codesize
     RAM (xrw)   : ORIGIN = 0x20000000, LENGTH = 256K
 }
 
@@ -13,8 +19,8 @@ MEMORY
 _estack = ORIGIN(RAM) + LENGTH(RAM) - 8;
 _sstack = _estack - 16K;
 
-_oflash_fs = ORIGIN(FLASH) + 384K - 16K;
-_sflash_fs = LENGTH(FLASH) - 384K + 16K - 1;
+_oflash_fs = ORIGIN(FLASH) + _codesize;
+_sflash_fs = _flashsize - _codesize - _bootloader;
 
 _sheap = _ebss;
 _eheap = _sstack;

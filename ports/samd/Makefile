@@ -56,7 +56,10 @@ CFLAGS += $(INC) -Wall -Werror -std=c99 -nostdlib -mthumb $(CFLAGS_MCU) -fsingle
 CFLAGS += -DMCU_$(MCU_SERIES) -D__$(CMSIS_MCU)__
 CFLAGS += $(CFLAGS_EXTRA)
 
-LDFLAGS += -nostdlib $(addprefix -T,$(LD_FILES)) -Map=$@.map --cref
+LDDEFINES = \
+	-DMICROPY_HW_CODESIZE=$(MICROPY_HW_CODESIZE)
+
+LDFLAGS += -nostdlib -Map=$@.map --cref
 
 LIBS += $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 
@@ -169,8 +172,10 @@ endif
 all: $(BUILD)/firmware.uf2
 
 $(BUILD)/firmware.elf: $(OBJ)
+	$(ECHO) "PREPROCESS LINK $@"
+	$(Q)$(CC) -E -x c $(LDDEFINES) $(LD_FILES)| grep -v '^#' > $(BUILD)/link.ld
 	$(ECHO) "LINK $@"
-	$(Q)$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(Q)$(LD) -T$(BUILD)/link.ld $(LDFLAGS) -o $@ $^ $(LIBS)
 	$(Q)$(SIZE) $@
 
 $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
