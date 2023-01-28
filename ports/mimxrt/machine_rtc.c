@@ -113,25 +113,6 @@ STATIC mp_obj_t machine_rtc_datetime(mp_uint_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_rtc_datetime_obj, 1, 2, machine_rtc_datetime);
 
-STATIC mp_obj_t machine_rtc_now(mp_obj_t self_in) {
-    // Get date and time in CPython order.
-    snvs_lp_srtc_datetime_t srtc_date;
-    SNVS_LP_SRTC_GetDatetime(SNVS, &srtc_date);
-
-    mp_obj_t tuple[8] = {
-        mp_obj_new_int(srtc_date.year),
-        mp_obj_new_int(srtc_date.month),
-        mp_obj_new_int(srtc_date.day),
-        mp_obj_new_int(srtc_date.hour),
-        mp_obj_new_int(srtc_date.minute),
-        mp_obj_new_int(srtc_date.second),
-        mp_obj_new_int(0),
-        mp_const_none,
-    };
-    return mp_obj_new_tuple(8, tuple);
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(machine_rtc_now_obj, machine_rtc_now);
-
 STATIC mp_obj_t machine_rtc_init(mp_obj_t self_in, mp_obj_t date) {
     mp_obj_t args[2] = {self_in, date};
     machine_rtc_datetime_helper(2, args);
@@ -159,7 +140,6 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(machine_rtc_calibration_obj, machine_rtc_calibr
 STATIC const mp_rom_map_elem_t machine_rtc_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&machine_rtc_init_obj) },
     { MP_ROM_QSTR(MP_QSTR_datetime), MP_ROM_PTR(&machine_rtc_datetime_obj) },
-    { MP_ROM_QSTR(MP_QSTR_now), MP_ROM_PTR(&machine_rtc_now_obj) },
     { MP_ROM_QSTR(MP_QSTR_calibration), MP_ROM_PTR(&machine_rtc_calibration_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(machine_rtc_locals_dict, machine_rtc_locals_dict_table);
