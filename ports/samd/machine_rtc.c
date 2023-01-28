@@ -144,13 +144,6 @@ STATIC mp_obj_t machine_rtc_datetime(mp_uint_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_rtc_datetime_obj, 1, 2, machine_rtc_datetime);
 
-STATIC mp_obj_t machine_rtc_init(mp_obj_t self_in, mp_obj_t date) {
-    mp_obj_t args[2] = {self_in, date};
-    machine_rtc_datetime_helper(2, args);
-    return mp_const_none;
-}
-STATIC MP_DEFINE_CONST_FUN_OBJ_2(machine_rtc_init_obj, machine_rtc_init);
-
 // calibration(cal)
 // When the argument is a number in the range [-16 to 15], set the calibration value.
 STATIC mp_obj_t machine_rtc_calibration(mp_obj_t self_in, mp_obj_t cal_in) {
@@ -164,7 +157,6 @@ STATIC mp_obj_t machine_rtc_calibration(mp_obj_t self_in, mp_obj_t cal_in) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(machine_rtc_calibration_obj, machine_rtc_calibration);
 
 STATIC const mp_rom_map_elem_t machine_rtc_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&machine_rtc_init_obj) },
     { MP_ROM_QSTR(MP_QSTR_datetime), MP_ROM_PTR(&machine_rtc_datetime_obj) },
     { MP_ROM_QSTR(MP_QSTR_calibration), MP_ROM_PTR(&machine_rtc_calibration_obj) },
 };

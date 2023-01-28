@@ -44,6 +44,9 @@ Methods
 
       ``(year, month, day[, hour[, minute[, second[, microsecond[, tzinfo]]]]])``
 
+   Availability: WiPy, ESP32, MIMXRT. The rtc.init() method at the stmm32 and renesas-ra
+   ports just (re-)start the RTC and do not accept arguments.
+
 .. method:: RTC.now()
 
    Get get the current datetime tuple.
