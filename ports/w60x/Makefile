@@ -243,7 +243,7 @@ MBEDTLS_SRC_C = mbedtls/aes_alt.c \
 endif
 
 SRC_O += \
-	shared/runtime/gchelper_m3.o
+	shared/runtime/gchelper_thumb2.o
 
 OBJ_MP =
 OBJ_MP += $(PY_O)
