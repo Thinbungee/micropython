@@ -33,7 +33,7 @@
 typedef struct _machine_pin_obj_t {
     mp_obj_base_t base;
     uint8_t pin_id;
-    char *name;
+    qstr name;
     uint8_t eic;
     uint8_t adc0;
     uint8_t sercom1;
@@ -51,7 +51,7 @@ typedef struct _machine_pin_obj_t {
 typedef struct _machine_pin_obj_t {
     mp_obj_base_t base;
     uint8_t pin_id;
-    char *name;
+    qstr name;
     uint8_t eic;
     uint8_t adc0;
     uint8_t adc1;
@@ -88,8 +88,6 @@ typedef struct _pwm_config_t {
 #define ALT_FCT_DAC       1
 #define ALT_FCT_SERCOM1   2
 #define ALT_FCT_SERCOM2   3
-
-extern const machine_pin_obj_t pin_af_table[];
 
 sercom_pad_config_t get_sercom_config(int pin_id, uint8_t sercom);
 adc_config_t get_adc_config(int pin_id, int32_t flag);

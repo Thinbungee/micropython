@@ -47,8 +47,8 @@ extern const uint8_t tcc_channel_count[];
 
 const machine_pin_obj_t *get_pin_obj_ptr(int pin_id) {
     for (int i = 0; i < MP_ARRAY_SIZE(pin_af_table); i++) {
-        if (pin_af_table[i].pin_id == pin_id) { // Pin match
-            return &pin_af_table[i];
+        if (pin_af_table[i]->pin_id == pin_id) { // Pin match
+            return pin_af_table[i];
         }
     }
     mp_raise_ValueError(MP_ERROR_TEXT("not a Pin"));
@@ -74,9 +74,11 @@ const machine_pin_obj_t *pin_find(mp_obj_t pin) {
             self = get_pin_obj_ptr(num);
         } else {
             for (int i = 0; i < MP_ARRAY_SIZE(pin_af_table); i++) {
-                if (slen == strlen(pin_af_table[i].name) &&
-                    strncmp(s, pin_af_table[i].name, slen) == 0) {
-                    self = &pin_af_table[i];
+                size_t len;
+                const char *name = (char *)qstr_data(pin_af_table[i]->name, &len);
+                if (slen == len && strncmp(s, name, slen) == 0) {
+                    self = pin_af_table[i];
+                    break;
                 }
             }
         }
@@ -89,18 +91,9 @@ const machine_pin_obj_t *pin_find(mp_obj_t pin) {
 }
 
 const char *pin_name(int id) {
-    static char board_name[5] = "Pxnn";
     for (int i = 0; i < sizeof(pin_af_table); i++) {
-        if (pin_af_table[i].pin_id == id) {
-            if (pin_af_table[i].name[0] != '-') {
-                return pin_af_table[i].name;
-            } else {
-                board_name[1] = "ABCD"[id / 32];
-                id %= 32;
-                board_name[2] = '0' + id / 10;
-                board_name[3] = '0' + id % 10;
-                return board_name;
-            }
+        if (pin_af_table[i]->pin_id == id) {
+            return qstr_str(pin_af_table[i]->name);
         }
     }
     return "-";

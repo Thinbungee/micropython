@@ -36,12 +36,13 @@ extern const mp_obj_type_t samd_flash_type;
 
 STATIC mp_obj_t samd_pininfo(mp_obj_t pin_obj) {
     const machine_pin_obj_t *pin_af = pin_find(pin_obj);
-    // Get the name, now that it is not in the pin object
-    const char *name = pin_af->name;
+    // Get the name, now that it is in the pin object
+    size_t len;
+    const char *name = (char *)qstr_data(pin_af->name, &len);
 
     #if defined(MCU_SAMD21)
     mp_obj_t tuple[7] = {
-        tuple[0] = mp_obj_new_str(name, strlen(name)),
+        tuple[0] = mp_obj_new_str(name, len),
         tuple[1] = mp_obj_new_int(pin_af->eic),
         tuple[2] = mp_obj_new_int(pin_af->adc0),
         tuple[3] = mp_obj_new_int(pin_af->sercom1),
@@ -52,7 +53,7 @@ STATIC mp_obj_t samd_pininfo(mp_obj_t pin_obj) {
     return mp_obj_new_tuple(7, tuple);
     #elif defined(MCU_SAMD51)
     mp_obj_t tuple[9] = {
-        tuple[0] = mp_obj_new_str(name, strlen(name)),
+        tuple[0] = mp_obj_new_str(name, len),
         tuple[1] = mp_obj_new_int(pin_af->eic),
         tuple[2] = mp_obj_new_int(pin_af->adc0),
         tuple[3] = mp_obj_new_int(pin_af->adc1),
