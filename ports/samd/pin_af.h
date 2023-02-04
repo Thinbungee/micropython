@@ -95,3 +95,6 @@ pwm_config_t get_pwm_config(int pin_id, int wanted_dev, uint8_t used_dev[]);
 const machine_pin_obj_t *get_pin_obj_ptr(int pin_id);
 const char *pin_name(int id);
 const machine_pin_obj_t *pin_find(mp_obj_t pin);
+
+extern const mp_obj_dict_t machine_pin_cpu_pins_locals_dict;
+extern const mp_obj_dict_t machine_pin_board_pins_locals_dict;

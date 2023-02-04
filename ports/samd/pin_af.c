@@ -54,6 +54,15 @@ const machine_pin_obj_t *get_pin_obj_ptr(int pin_id) {
     mp_raise_ValueError(MP_ERROR_TEXT("not a Pin"));
 }
 
+STATIC const machine_pin_obj_t *pin_find_named_pin(const mp_obj_dict_t *named_pins, mp_obj_t name) {
+    mp_map_t *named_map = mp_obj_dict_get_map((mp_obj_t)named_pins);
+    mp_map_elem_t *named_elem = mp_map_lookup(named_map, name, MP_MAP_LOOKUP);
+    if (named_elem != NULL && named_elem->value != NULL) {
+        return named_elem->value;
+    }
+    return NULL;
+}
+
 const machine_pin_obj_t *pin_find(mp_obj_t pin) {
     const machine_pin_obj_t *self = NULL;
     // Is already a object of the proper type
@@ -62,32 +71,19 @@ const machine_pin_obj_t *pin_find(mp_obj_t pin) {
     }
     if (mp_obj_is_small_int(pin)) {
         // Pin defined by pin number for PAnn, PBnn, etc.
-        self = get_pin_obj_ptr(mp_obj_get_int(pin));
-    } else if (mp_obj_is_str(pin)) {
-        // Search by name
-        size_t slen;
-        const char *s = mp_obj_str_get_data(pin, &slen);
-        // Check for a string like PA02 or PD12
-        if (slen == 4 && s[0] == 'P' && strchr("ABCD", s[1]) != NULL &&
-            strchr("0123456789", s[2]) != NULL && strchr("0123456789", s[2]) != NULL) {
-            int num = (s[1] - 'A') * 32 + (s[2] - '0') * 10 + (s[3] - '0');
-            self = get_pin_obj_ptr(num);
-        } else {
-            for (int i = 0; i < MP_ARRAY_SIZE(pin_af_table); i++) {
-                size_t len;
-                const char *name = (char *)qstr_data(pin_af_table[i]->name, &len);
-                if (slen == len && strncmp(s, name, slen) == 0) {
-                    self = pin_af_table[i];
-                    break;
-                }
-            }
-        }
+        return get_pin_obj_ptr(mp_obj_get_int(pin));
     }
-    if (self != NULL) {
-        return self;
-    } else {
+    // See if the pin name matches a board pin
+    self = pin_find_named_pin(&machine_pin_board_pins_locals_dict, pin);
+
+    if (self == NULL) {
+        // See if the pin name matches a cpu pin
+        self = pin_find_named_pin(&machine_pin_cpu_pins_locals_dict, pin);
+    }
+    if (self == NULL) {
         mp_raise_ValueError(MP_ERROR_TEXT("not a Pin"));
     }
+    return self;
 }
 
 const char *pin_name(int id) {
@@ -127,6 +123,7 @@ adc_config_t get_adc_config(int pin_id, int32_t flag) {
     #endif
     if (pct_ptr->adc0 != 0xff && (flag & (1 << pct_ptr->adc0)) == 0) {
         return (adc_config_t) {0, pct_ptr->adc0};
+
     #if defined(MUC_SAMD51)
     } else if (pct_ptr->adc1 != 0xff && (flag & (1 << (pct_ptr->adc1 + 16))) == 0) {
         return (adc_config_t) {1, pct_ptr->adc1};

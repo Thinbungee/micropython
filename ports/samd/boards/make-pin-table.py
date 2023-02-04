@@ -48,7 +48,7 @@ class Pins:
         with open(table_filename, "wt") as table_file:
             table_file.write(table_header)
 
-# Create the Pin objects
+            # Create the Pin objects
 
             if mcu_name == "SAMD21":
                 for row in self.board_pins:
@@ -58,7 +58,7 @@ class Pins:
                     eic = row[1] if row[1] else "0xff"
                     adc = row[2] if row[2] else "0xff"
                     if pin in self.pin_names:
-                        name = 'MP_QSTR_%s' % self.pin_names[pin][0]
+                        name = "MP_QSTR_%s" % self.pin_names[pin][0]
                         type = self.pin_names[pin][1]
                     else:
                         name = "MP_QSTR_"
@@ -82,7 +82,7 @@ class Pins:
                     adc0 = row[2] if row[2] else "0xff"
                     adc1 = row[3] if row[3] else "0xff"
                     if pin in self.pin_names:
-                        name = 'MP_QSTR_%s' % self.pin_names[pin][0]
+                        name = "MP_QSTR_%s" % self.pin_names[pin][0]
                         type = self.pin_names[pin][1]
                     else:
                         name = "MP_QSTR_"
@@ -100,16 +100,55 @@ class Pins:
                     table_file.write("};\n")
                     table_file.write("#endif\n")
 
-# Create the Pin table
+            # Create the Pin table
 
             table_file.write("\n// The table of references to the pin objects.\n\n")
             table_file.write("static const machine_pin_obj_t *pin_af_table[] = {\n")
             for row in self.board_pins:
                 pin = "PIN_" + row[0].upper()
                 table_file.write("    #ifdef " + pin + "\n")
-                table_file.write("    &%s_obj,\n" %pin)
+                table_file.write("    &%s_obj,\n" % pin)
                 table_file.write("    #endif\n")
             table_file.write("};\n")
+
+            # Create the CPU pins dictionary table
+
+            table_file.write("\n// The cpu pins dictionary\n\n")
+            table_file.write(
+                "STATIC const mp_rom_map_elem_t pin_cpu_pins_locals_dict_table[] = {\n"
+            )
+            for row in self.board_pins:
+                pin = "PIN_" + row[0].upper()
+                table_file.write("    #ifdef " + pin + "\n")
+                table_file.write(
+                    "    { MP_ROM_QSTR(MP_QSTR_%s), MP_ROM_PTR(&%s_obj) },\n"
+                    % (row[0].upper(), pin)
+                )
+                table_file.write("    #endif\n")
+            table_file.write("};\n")
+            table_file.write(
+                "MP_DEFINE_CONST_DICT(machine_pin_cpu_pins_locals_dict, pin_cpu_pins_locals_dict_table);\n"
+            )
+
+            # Create the board pins dictionary table
+
+            table_file.write("\n// The board pins dictionary\n\n")
+            table_file.write(
+                "STATIC const mp_rom_map_elem_t pin_board_pins_locals_dict_table[] = {\n"
+            )
+            for row in self.board_pins:
+                pin = "PIN_" + row[0].upper()
+                if pin in self.pin_names:
+                    table_file.write("    #ifdef " + pin + "\n")
+                    table_file.write(
+                        "    { MP_ROM_QSTR(MP_QSTR_%s), MP_ROM_PTR(&%s_obj) },\n"
+                        % (self.pin_names[pin][0], pin)
+                    )
+                    table_file.write("    #endif\n")
+            table_file.write("};\n")
+            table_file.write(
+                "MP_DEFINE_CONST_DICT(machine_pin_board_pins_locals_dict, pin_board_pins_locals_dict_table);\n"
+            )
 
 
 def main():
