@@ -561,7 +561,7 @@ STATIC mp_uint_t machine_uart_ioctl(mp_obj_t self_in, mp_uint_t request, mp_uint
             if (machine_uart_txdone((mp_obj_t)self) == mp_const_true) {
                 return 0;
             }
-            MICROPY_EVENT_POLL_HOOK
+            MICROPY_EVENT_POLL_HOOK_FAST;
         } while (time_us_64() < timeout);
         *errcode = MP_ETIMEDOUT;
         ret = MP_STREAM_ERROR;
