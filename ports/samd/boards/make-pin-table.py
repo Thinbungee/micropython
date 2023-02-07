@@ -113,6 +113,7 @@ class Pins:
 
             # Create the CPU pins dictionary table
 
+            table_file.write("\n#if MICROPY_HW_PIN_BOARD_CPU\n")
             table_file.write("\n// The cpu pins dictionary\n\n")
             table_file.write(
                 "STATIC const mp_rom_map_elem_t pin_cpu_pins_locals_dict_table[] = {\n"
@@ -149,6 +150,7 @@ class Pins:
             table_file.write(
                 "MP_DEFINE_CONST_DICT(machine_pin_board_pins_locals_dict, pin_board_pins_locals_dict_table);\n"
             )
+            table_file.write("#endif\n")
 
 
 def main():
