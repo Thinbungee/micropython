@@ -49,9 +49,16 @@
 
 extern uint8_t _sstack, _estack, _gc_heap_start, _gc_heap_end;
 
+#if MICROPY_PY_THREAD
+STATIC pyb_thread_t pyb_thread_main;
+#endif
+
 void board_init(void);
 
 int main(void) {
+    #if MICROPY_PY_THREAD
+    pyb_thread_init(&pyb_thread_main);
+    #endif
     board_init();
     ticks_init();
     tusb_init();
@@ -71,6 +78,10 @@ int main(void) {
     #endif
 
     for (;;) {
+        // Python threading init
+        #if MICROPY_PY_THREAD
+        mp_thread_init();
+        #endif
         mp_stack_set_top(&_estack);
         mp_stack_set_limit(&_estack - &_sstack - 1024);
 
@@ -123,17 +134,14 @@ int main(void) {
         #endif
         machine_pwm_deinit_all();
         soft_timer_deinit();
+        #if MICROPY_PY_THREAD
+        pyb_thread_deinit();
+        #endif
         gc_sweep_all();
         mp_deinit();
     }
 
     return 0;
-}
-
-void gc_collect(void) {
-    gc_collect_start();
-    gc_helper_collect_regs_and_stack();
-    gc_collect_end();
 }
 
 void nlr_jump_fail(void *val) {

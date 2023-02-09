@@ -167,6 +167,7 @@ SRC_C += \
 	drivers/dht/dht.c \
 	eth.c \
 	fatfs_port.c \
+	gccollect.c \
 	hal/pwm_backport.c \
 	led.c \
 	machine_adc.c \
@@ -189,9 +190,11 @@ SRC_C += \
 	modutime.c \
 	mphalport.c \
 	mpnetworkport.c \
+	mpthreadport.c \
 	network_lan.c \
 	pendsv.c \
 	pin.c \
+	pybthread.c \
 	sdcard.c \
 	systick.c \
 	ticks.c \

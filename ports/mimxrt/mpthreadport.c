@@ -56,7 +56,7 @@ void mp_thread_gc_others(void) {
 
 void mp_thread_create(void *(*entry)(void *), void *arg, size_t *stack_size) {
     if (*stack_size == 0) {
-        *stack_size = MP_THREAD_STACK_SIZE; // default stack size
+        *stack_size = 4096; // default stack size
     } else if (*stack_size < 2048) {
         *stack_size = 2048; // minimum stack size
     }
