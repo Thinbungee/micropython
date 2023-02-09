@@ -187,6 +187,8 @@ extern const struct _mp_obj_type_t network_lan_type;
 #define MP_STATE_PORT MP_STATE_VM
 
 // Miscellaneous settings
+#ifndef MICROPY_EVENT_POLL_HOOK
+
 #if MICROPY_PY_THREAD
 
 #define MICROPY_EVENT_POLL_HOOK \
@@ -202,8 +204,6 @@ extern const struct _mp_obj_type_t network_lan_type;
         } \
     } while (0);
 
-#define MICROPY_THREAD_YIELD() pyb_thread_yield()
-
 #else
 
 #define MICROPY_EVENT_POLL_HOOK \
@@ -212,8 +212,9 @@ extern const struct _mp_obj_type_t network_lan_type;
         mp_handle_pending(true); \
         __WFE(); \
     } while (0);
-#define MICROPY_THREAD_YIELD() pyb_thread_yield()
-#endif
+#endif  // MICROPY_PY_THREAD
+
+#endif  // MICROPY_EVENT_POLL_HOOK
 
 #define MICROPY_MAKE_POINTER_CALLABLE(p) ((void *)((mp_uint_t)(p) | 1))
 

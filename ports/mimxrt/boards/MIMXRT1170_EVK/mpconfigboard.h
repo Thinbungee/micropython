@@ -1,10 +1,35 @@
 #define MICROPY_HW_BOARD_NAME "i.MX RT1170 EVK"
 #define MICROPY_HW_MCU_NAME   "MIMXRT1176DVMAA"
+
+#ifndef MICROPY_PY_THREAD
+#define MICROPY_PY_THREAD  (1)
+#endif
+
+#if MICROPY_PY_THREAD
+
+#define MICROPY_EVENT_POLL_HOOK \
+    do { \
+        extern void mp_handle_pending(bool); \
+        mp_handle_pending(true); \
+        if (pyb_thread_enabled) { \
+            MP_THREAD_GIL_EXIT(); \
+            pyb_thread_yield(); \
+            MP_THREAD_GIL_ENTER(); \
+        } \
+    } while (0);
+
+// #define MICROPY_THREAD_YIELD() pyb_thread_yield()
+
+#else
+
 #define MICROPY_EVENT_POLL_HOOK \
     do { \
         extern void mp_handle_pending(bool); \
         mp_handle_pending(true); \
     } while (0);
+// #define MICROPY_THREAD_YIELD()
+
+#endif  // MICROPY_PY_THREAD
 
 // MIMXRT1170_EVK has 2 user LEDs
 #define MICROPY_HW_LED1_PIN (pin_GPIO_AD_04)
