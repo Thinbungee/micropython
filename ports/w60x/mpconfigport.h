@@ -121,9 +121,10 @@
 #define MICROPY_PY_UERRNO                   (1)
 #define MICROPY_PY_USELECT                  (1)
 #define MICROPY_PY_UTIME_MP_HAL             (1)
+
+#ifndef MICROPY_PY_THREAD
 #define MICROPY_PY_THREAD                   (0)  // 1
-#define MICROPY_PY_THREAD_GIL               (0)  // 1
-#define MICROPY_PY_THREAD_GIL_VM_DIVISOR    (32)
+#endif
 
 // extended modules
 #ifndef MICROPY_PY_UASYNCIO

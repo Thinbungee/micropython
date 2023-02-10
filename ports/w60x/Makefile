@@ -287,6 +287,9 @@ endif
 ifeq ($(MICROPY_USE_LITTLEFS), 1)
 CFLAGS += -DW60X_USE_LITTLEFS=1
 endif
+ifdef MICROPY_PY_THREAD
+CFLAGS += -DMICROPY_PY_THREAD=$(MICROPY_PY_THREAD)
+endif
 
 CFLAGS += -Wno-unused-variable -Wno-unused-function -Os -DNDEBUG
 # CFLAGS += -Werror -Wno-error=unused-function -Wno-error=unused-but-set-variable
