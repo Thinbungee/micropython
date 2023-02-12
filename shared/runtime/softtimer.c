@@ -130,7 +130,7 @@ void soft_timer_static_init(soft_timer_entry_t *entry, uint16_t mode, uint32_t d
 
 void soft_timer_insert(soft_timer_entry_t *entry, uint32_t initial_delta_ms) {
     mp_pairheap_init_node(soft_timer_lt, &entry->pairheap);
-    entry->expiry_ms = mp_hal_ticks_ms() + initial_delta_ms;
+    entry->expiry_ms = uwTick + initial_delta_ms;
     uint32_t irq_state = raise_irq_pri(IRQ_PRI_PENDSV);
     soft_timer_heap = (soft_timer_entry_t *)mp_pairheap_push(soft_timer_lt, &soft_timer_heap->pairheap, &entry->pairheap);
     if (entry == soft_timer_heap) {
