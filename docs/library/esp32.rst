@@ -44,10 +44,6 @@ Functions
 
     Read the raw value of the internal temperature sensor, returning an integer.
 
-.. function:: hall_sensor()
-
-    Read the raw value of the internal Hall sensor, returning an integer.
-
 .. function:: idf_heap_info(capabilities)
 
     Returns information about the ESP-IDF heap memory regions. One of them contains
@@ -55,8 +51,6 @@ Functions
     buffers and other data. This data is useful to get a sense of how much memory
     is available to ESP-IDF and the networking stack in particular. It may shed
     some light on situations where ESP-IDF operations fail due to allocation failures.
-    The information returned is *not* useful to troubleshoot Python allocation failures,
-    use `micropython.mem_info()` instead.
 
     The capabilities parameter corresponds to ESP-IDF's ``MALLOC_CAP_XXX`` values but the
     two most useful ones are predefined as `esp32.HEAP_DATA` for data heap regions and
@@ -71,6 +65,44 @@ Functions
         >>> import esp32; esp32.idf_heap_info(esp32.HEAP_DATA)
         [(240, 0, 0, 0), (7288, 0, 0, 0), (16648, 4, 4, 4), (79912, 35712, 35512, 35108),
          (15072, 15036, 15036, 15036), (113840, 0, 0, 0)]
+
+    .. note:: Free IDF heap memory in the `esp32.HEAP_DATA` region is available
+       to be automatically added to the MicroPython heap to prevent a
+       MicroPython allocation from failing. However, the information returned
+       here is otherwise *not* useful to troubleshoot Python allocation
+       failures. :func:`micropython.mem_info()` and :func:`gc.mem_free()` should
+       be used instead:
+
+       The "max new split" value in :func:`micropython.mem_info()` output
+       corresponds to the largest free block of ESP-IDF heap that could be
+       automatically added on demand to the MicroPython heap.
+
+       The result of :func:`gc.mem_free()` is the total of the current "free"
+       and "max new split" values printed by :func:`micropython.mem_info()`.
+
+.. function:: idf_task_info()
+
+    Returns information about running ESP-IDF/FreeRTOS tasks, which include
+    MicroPython threads. This data is useful to gain insight into how much time
+    tasks spend running or if they are blocked for significant parts of time,
+    and to determine if allocated stacks are fully utilized or might be reduced.
+
+    ``CONFIG_FREERTOS_USE_TRACE_FACILITY=y`` must be set in the board
+    configuration to make this method available. Additionally configuring
+    ``CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y`` and
+    ``CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID=y`` is recommended to be able to
+    retrieve the total and per-task runtime and the core ID respectively.
+
+    The return value is a 2-tuple where the first value is the total runtime,
+    and the second a list of tasks. Each task is a 7-tuple containing: the task
+    ID, name, current state, priority, runtime, stack high water mark, and the
+    ID of the core it is running on. Runtime and core ID will be None when the
+    respective FreeRTOS configuration option is not enabled.
+
+    .. note:: For an easier to use output based on this function you can use the
+       `utop library <https://github.com/micropython/micropython-lib/tree/master/micropython/utop>`_,
+       which implements a live overview similar to the Unix ``top`` command.
+
 
 Flash partitions
 ----------------
@@ -105,11 +137,16 @@ methods to enable over-the-air (OTA) updates.
 
     These methods implement the simple and :ref:`extended
     <block-device-interface>` block protocol defined by
-    :class:`os.AbstractBlockDev`.
+    :class:`vfs.AbstractBlockDev`.
 
 .. method:: Partition.set_boot()
 
     Sets the partition as the boot partition.
+
+    .. note:: Do not enter :func:`deepsleep<machine.deepsleep>` after changing
+       the OTA boot partition, without first performing a hard
+       :func:`reset<machine.reset>` or power cycle. This ensures the bootloader
+       will validate the new image before booting.
 
 .. method:: Partition.get_next_update()
 
@@ -126,7 +163,7 @@ methods to enable over-the-air (OTA) updates.
     and  an ``OSError(-261)`` is raised if called on firmware that doesn't have the
     feature enabled.
     It is OK to call ``mark_app_valid_cancel_rollback`` on every boot and it is not
-    necessary when booting firmare that was loaded using esptool.
+    necessary when booting firmware that was loaded using esptool.
 
 Constants
 ~~~~~~~~~
@@ -179,7 +216,7 @@ numbers specified in ``write_pulses`` are multiplied by the resolution to
 define the pulses.
 
 ``clock_div`` is an 8-bit divider (0-255) and each pulse can be defined by
-multiplying the resolution by a 15-bit (0-32,768) number. There are eight
+multiplying the resolution by a 15-bit (1-``PULSE_MAX``) number. There are eight
 channels (0-7) and each can have a different clock divider.
 
 So, in the example above, the 80MHz clock is divided by 8. Thus the
@@ -212,7 +249,7 @@ For more details see Espressif's `ESP-IDF RMT documentation.
     ``100``) and the output level to apply the carrier to (a boolean as per
     *idle_level*).
 
-.. method:: RMT.source_freq()
+.. classmethod:: RMT.source_freq()
 
     Returns the source clock frequency. Currently the source clock is not
     configurable so this will always return 80MHz.
@@ -250,10 +287,10 @@ For more details see Espressif's `ESP-IDF RMT documentation.
     **Mode 3:** *duration* and *data* are lists or tuples of equal length,
     specifying individual durations and the output level for each.
 
-    Durations are in integer units of the channel resolution (as described
-    above), between 1 and 32767 units. Output levels are any value that can
-    be converted to a boolean, with ``True`` representing high voltage and
-    ``False`` representing low.
+    Durations are in integer units of the channel resolution (as
+    described above), between 1 and ``PULSE_MAX`` units. Output levels
+    are any value that can be converted to a boolean, with ``True``
+    representing high voltage and ``False`` representing low.
 
     If transmission of an earlier sequence is in progress then this method will
     block until that transmission is complete before beginning the new sequence.
@@ -276,8 +313,23 @@ For more details see Espressif's `ESP-IDF RMT documentation.
     Passing in no argument will not change the channel.  This function returns
     the current channel number.
 
+Constants
+---------
+
+.. data:: RMT.PULSE_MAX
+
+   Maximum integer that can be set for a pulse duration.
+
 Ultra-Low-Power co-processor
 ----------------------------
+
+This class gives access to the Ultra Low Power (ULP) co-processor on the ESP32,
+ESP32-S2 and ESP32-S3 chips.
+
+.. warning::
+
+    This class does not provide access to the RISCV ULP co-processor available
+    on the ESP32-S2 and ESP32-S3 chips.
 
 .. class:: ULP()
 

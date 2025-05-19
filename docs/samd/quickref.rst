@@ -65,6 +65,8 @@ Use the :mod:`time <time>` module::
     start = time.ticks_ms() # get millisecond counter
     delta = time.ticks_diff(time.ticks_ms(), start) # compute time difference
 
+Note that :func:`time.sleep_us()` delays by busy waiting. During that time, other tasks are
+not scheduled.
 
 Clock and time
 --------------
@@ -132,7 +134,7 @@ Use the :ref:`machine.Pin <machine.Pin>` class::
     print(p2.value())       # get value, 0 or 1
 
     p4 = Pin('D4', Pin.IN, Pin.PULL_UP) # enable internal pull-up resistor
-    p7 = Pin("PA07", Pin.OUT, value=1) # set pin high on creation
+    p7 = Pin('PA07', Pin.OUT, value=1) # set pin high on creation
 
 Pins can be denoted by a string or a number. The string is either the
 pin label of the respective board, like "D0" or "SDA", or in the form
@@ -157,14 +159,19 @@ See :ref:`machine.UART <machine.UART>`. ::
     # Use UART 3 on a ItsyBitsy M4 board
     from machine import UART
 
-    uart3 = UART(3, tx=Pin(1), rx=Pin(0), baudrate=115200)
+    uart3 = UART(3, tx=Pin('D1'), rx=Pin('D0'), baudrate=115200)
     uart3.write('hello')  # write 5 bytes
     uart3.read(5)         # read up to 5 bytes
+
+    uart = UART()         # Use the default values for id, rx and tx.
+    uart = UART(baudrate=9600) # Use the default UART and set the baudrate
 
 The SAMD21/SAMD51 MCUs have up to eight hardware so called SERCOM devices, which can be used as UART,
 SPI or I2C device, but not every MCU variant and board exposes all
 TX and RX pins for users. For the assignment of Pins to devices and UART signals,
-refer to the :ref:`SAMD pinout <samd_pinout>`.
+refer to the :ref:`SAMD pinout <samd_pinout>`. If the id, rx or tx pins are not specified,
+the default values are used. The first positional argument (if given) is assumed to be the UART id.
+If the baudrate is changed and the UART id is omitted, it must be set using the baudrate keyword.
 
 PWM (pulse width modulation)
 ----------------------------
@@ -178,11 +185,12 @@ It supports all basic methods listed for that class. ::
 
     from machine import Pin, PWM
 
-    pwm = PWM(Pin(7))      # create PWM object from a pin
-    pwm.freq()             # get current frequency
-    pwm.freq(1000)         # set frequency
-    pwm.duty_u16()         # get current duty cycle, range 0-65535
-    pwm.duty_u16(200)      # set duty cycle, range 0-65535
+    # create PWM object from a pin and set the frequency and duty cycle
+    pwm = PWM(Pin('D7'), freq=2000, duty_u16=32768)
+    pwm.freq()             # get the current frequency
+    pwm.freq(1000)         # set/change the frequency
+    pwm.duty_u16()         # get the current duty cycle, range 0-65535
+    pwm.duty_u16(200)      # set the duty cycle, range 0-65535
     pwm.deinit()           # turn off PWM on the pin
 
     pwm                    # show the PWM objects properties
@@ -191,7 +199,7 @@ It supports all basic methods listed for that class. ::
 PWM Constructor
 ```````````````
 
-.. class:: PWM(dest, freq, duty_u16, duty_ns, *, invert, device)
+.. class:: PWM(dest, *, freq, duty_u16, duty_ns, invert, device)
   :noindex:
 
     Construct and return a new PWM object using the following parameters:
@@ -212,10 +220,7 @@ PWM Constructor
 
       - *freq* should be an integer which sets the frequency in Hz for the
         PWM cycle. The valid frequency range is 1 Hz to 24 MHz.
-      - *duty_u16* sets the duty cycle as a ratio ``duty_u16 / 65536``.
-        The duty cycle of a X channel can only be changed, if the A and B channel
-        of the respective submodule is not used. Otherwise the duty_16 value of the
-        X channel is 32768 (50%).
+      - *duty_u16* sets the duty cycle as a ratio ``duty_u16 / 65535``.
       - *duty_ns* sets the pulse width in nanoseconds. The limitation for X channels
         apply as well.
       - *invert*\=True|False. Setting a bit inverts the respective output.
@@ -245,9 +250,9 @@ Use the :ref:`machine.ADC <machine.ADC>` class::
 
     from machine import ADC
 
-    adc0 = ADC(Pin("A0"))            # create ADC object on ADC pin, average=16
-    adc0.read_u16()                  # read value, 0-65536 across voltage range 0.0v - 3.3v
-    adc1 = ADC(Pin("A1"), average=1) # create ADC object on ADC pin, average=1
+    adc0 = ADC(Pin('A0'))            # create ADC object on ADC pin, average=16
+    adc0.read_u16()                  # read value, 0-65535 across voltage range 0.0v - 3.3v
+    adc1 = ADC(Pin('A1'), average=1) # create ADC object on ADC pin, average=1
 
 The resolution of the ADC is 12 bit with 12 bit accuracy, irrespective of the
 value returned by read_u16(). If you need a higher resolution or better accuracy, use
@@ -341,7 +346,7 @@ Software SPI (using bit-banging) works on all pins, and is accessed via the
     # construct a SoftSPI bus on the given pins
     # polarity is the idle state of SCK
     # phase=0 means sample on the first edge of SCK, phase=1 means the second
-    spi = SoftSPI(baudrate=100000, polarity=1, phase=0, sck=Pin(7), mosi=Pin(9), miso=Pin(10))
+    spi = SoftSPI(baudrate=100000, polarity=1, phase=0, sck=Pin('D7'), mosi=Pin('D9'), miso=Pin('D10'))
 
     spi.init(baudrate=200000) # set the baud rate
 
@@ -373,8 +378,18 @@ signal pins for users.  Hardware SPI is accessed via the
     spi = SPI(1, sck=Pin("SCK"), mosi=Pin("MOSI"), miso=Pin("MISO"), baudrate=10000000)
     spi.write('Hello World')
 
-If miso is not specified, it is not used. For the assignment of Pins to SPI devices and signals, refer to
-:ref:`SAMD pinout <samd_pinout>`.
+For the assignment of Pins to SPI devices and signals, refer to
+:ref:`SAMD pinout <samd_pinout>`. If the id, miso, mosi or sck pins are not specified,
+the default values are used. So it is possible to create the SPI object as::
+
+    from machine import SPI
+    spi = SPI()  # Use the default device and default baudrate
+    spi = SPI(baudrate=12_000_000)  # Use the default device and change the baudrate
+
+If the MISO signal shall be omitted, it must be defined as miso=None.
+The first positional argument (if given) is assumed to be the SPI id.
+If the baudrate is changed while the SPI id is omitted, it must be
+set using the baudrate keyword.
 
 Note: Even if the highest reliable baud rate at the moment is about 24 Mhz,
 setting a baud rate will not always result in exactly that frequency, especially
@@ -388,7 +403,7 @@ accessed via the :ref:`machine.SoftI2C <machine.SoftI2C>` class::
 
     from machine import Pin, SoftI2C
 
-    i2c = SoftI2C(scl=Pin(10), sda=Pin(11), freq=100000)
+    i2c = SoftI2C(scl=Pin('D10'), sda=Pin('D11'), freq=100000)
 
     i2c.scan()              # scan for devices
 
@@ -407,6 +422,7 @@ The SAMD21/SAMD51 MCUs have up to eight hardware so called SERCOM devices,
 which can be used as UART, SPI or I2C device, but not every MCU variant
 and board exposes all signal pins for users.
 For the assignment of Pins to devices and I2C signals, refer to :ref:`SAMD pinout <samd_pinout>`.
+If the id, scl or sda pins are not specified, the default values are used.
 
 Hardware I2C is accessed via the :ref:`machine.I2C <machine.I2C>` class and
 has the same methods as software SPI above::
@@ -416,6 +432,13 @@ has the same methods as software SPI above::
     i2c = I2C(2, scl=Pin("SCL"), sda=Pin("SDA"), freq=400_000)
     i2c.writeto(0x76, b"Hello World")
 
+    i2c2 = I2C()   # Use the default values for id, scl and sda.
+    i2c2 = I2C(freq=100_000) # Use the default device and set freq.
+
+The first positional argument (if given) is assumed to be the I2C id.
+If the freq is changed and the I2C id is omitted, it must be set using
+the freq keyword.
+
 OneWire driver
 --------------
 
@@ -424,7 +447,7 @@ The OneWire driver is implemented in software and works on all pins::
     from machine import Pin
     import onewire
 
-    ow = onewire.OneWire(Pin(12)) # create a OneWire bus on GPIO12
+    ow = onewire.OneWire(Pin('D12')) # create a OneWire bus on GPIO12
     ow.scan()                     # return a list of devices on the bus
     ow.reset()                    # reset the bus
     ow.readbyte()                 # read a byte
@@ -454,12 +477,12 @@ The DHT driver is implemented in software and works on all pins::
     import dht
     import machine
 
-    d = dht.DHT11(machine.Pin(4))
+    d = dht.DHT11(machine.Pin('D4'))
     d.measure()
     d.temperature() # eg. 23 (°C)
     d.humidity()    # eg. 41 (% RH)
 
-    d = dht.DHT22(machine.Pin(4))
+    d = dht.DHT22(machine.Pin('D4'))
     d.measure()
     d.temperature() # eg. 23.6 (°C)
     d.humidity()    # eg. 41.3 (% RH)
@@ -474,7 +497,7 @@ The APA102 on some Adafruit boards can be controlled using SoftSPI::
 
     from machine import SoftSPI, Pin
     # create the SPI object. miso can be any unused pin.
-    spi=SoftSPI(sck=Pin(25), mosi=Pin(26), miso=Pin(14))
+    spi=SoftSPI(sck=Pin('D25'), mosi=Pin('D26'), miso=Pin('D14'))
 
     # define a little function that writes the data with
     # preamble and postfix
@@ -499,7 +522,7 @@ with the Neopixel driver from the MicroPython driver library::
     import machine
 
     # 1 LED connected to Pin D8 on Adafruit Feather boards
-    p = machine.Pin(8, machine.Pin.OUT)
+    p = machine.Pin('D8', machine.Pin.OUT)
     n = neopixel.NeoPixel(p, 1)
 
     # set the led to red.
